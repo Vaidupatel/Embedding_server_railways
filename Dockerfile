@@ -6,11 +6,16 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl && \
+    apt-get install -y --no-install-recommends git curl && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Download ONNX model only (no torch)
+RUN mkdir -p /models && \
+    git lfs install && \
+    git clone --depth 1 https://huggingface.co/BAAI/bge-small-en-v1.5-onnx /models/bge-small
 
 COPY app ./app
 

@@ -1,12 +1,13 @@
 import numpy as np
-from transformers import AutoTokenizer
 import onnxruntime as ort
-from app.config import MODEL_NAME
+from transformers import AutoTokenizer
 
-tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+MODEL_DIR = "/models/bge-small"
+
+tokenizer = AutoTokenizer.from_pretrained(MODEL_DIR)
 
 session = ort.InferenceSession(
-    f"https://huggingface.co/{MODEL_NAME}/resolve/main/model.onnx",
+    f"{MODEL_DIR}/model.onnx",
     providers=["CPUExecutionProvider"]
 )
 
@@ -14,29 +15,28 @@ def l2_normalize(v):
     norm = np.linalg.norm(v)
     return v if norm == 0 else v / norm
 
-def embed_texts(texts, normalize: bool = True):
-    embeddings = []
+def embed_texts(texts, normalize=True):
+    results = []
 
     for text in texts:
         inputs = tokenizer(
             text,
-            padding=True,
             truncation=True,
+            padding=True,
             max_length=512,
             return_tensors="np"
         )
 
         ort_inputs = {
             "input_ids": inputs["input_ids"],
-            "attention_mask": inputs["attention_mask"]
+            "attention_mask": inputs["attention_mask"],
         }
 
-        outputs = session.run(None, ort_inputs)
-        vector = outputs[0][0]
+        embedding = session.run(None, ort_inputs)[0][0]
 
         if normalize:
-            vector = l2_normalize(vector)
+            embedding = l2_normalize(embedding)
 
-        embeddings.append(vector.tolist())
+        results.append(embedding.tolist())
 
-    return embeddings
+    return results
