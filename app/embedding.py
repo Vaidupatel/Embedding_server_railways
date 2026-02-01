@@ -1,8 +1,7 @@
 import numpy as np
 import onnxruntime as ort
 from transformers import AutoTokenizer
-
-MODEL_DIR = "/models/bge-small"
+from app.config import MODEL_DIR
 
 tokenizer = AutoTokenizer.from_pretrained(MODEL_DIR)
 
@@ -11,15 +10,15 @@ session = ort.InferenceSession(
     providers=["CPUExecutionProvider"]
 )
 
-def l2_normalize(v):
-    norm = np.linalg.norm(v)
-    return v if norm == 0 else v / norm
+def l2_normalize(vec: np.ndarray) -> np.ndarray:
+    norm = np.linalg.norm(vec)
+    return vec if norm == 0 else vec / norm
 
-def embed_texts(texts, normalize=True):
-    results = []
+def embed_texts(texts: list[str], normalize: bool = True) -> list[list[float]]:
+    embeddings = []
 
-    for text in texts:
-        inputs = tokenizer(
+    for text in texts:  # 🔒 ONE BY ONE (explicit)
+        tokens = tokenizer(
             text,
             truncation=True,
             padding=True,
@@ -27,16 +26,19 @@ def embed_texts(texts, normalize=True):
             return_tensors="np"
         )
 
-        ort_inputs = {
-            "input_ids": inputs["input_ids"],
-            "attention_mask": inputs["attention_mask"],
-        }
+        outputs = session.run(
+            None,
+            {
+                "input_ids": tokens["input_ids"],
+                "attention_mask": tokens["attention_mask"],
+            }
+        )
 
-        embedding = session.run(None, ort_inputs)[0][0]
+        vector = outputs[0][0]
 
         if normalize:
-            embedding = l2_normalize(embedding)
+            vector = l2_normalize(vector)
 
-        results.append(embedding.tolist())
+        embeddings.append(vector.tolist())
 
-    return results
+    return embeddings

@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from pydantic import BaseModel
-from app.auth import verify_bearer
 from app.embedding import embed_texts
+from app.security import verify_token
 from app.config import MAX_CHUNKS
 
 app = FastAPI(title="Embedding Service", version="1.0")
@@ -15,15 +15,20 @@ def health():
     return {"status": "ok"}
 
 @app.post("/embed")
-def embed(req: EmbedRequest, _=Depends(verify_bearer)):
+def embed(req: EmbedRequest, _=Depends(verify_token)):
     if not req.texts:
         raise HTTPException(status_code=400, detail="No texts provided")
 
+    # 🔒 HARD CHUNK LIMIT
     if len(req.texts) > MAX_CHUNKS:
         raise HTTPException(
             status_code=400,
-            detail=f"Max {MAX_CHUNKS} chunks allowed"
+            detail=f"Maximum {MAX_CHUNKS} chunks allowed"
         )
 
     embeddings = embed_texts(req.texts, req.normalize)
-    return {"embeddings": embeddings}
+
+    return {
+        "count": len(embeddings),
+        "embeddings": embeddings
+    }
