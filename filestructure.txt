@@ -1,10 +1,10 @@
 |-- .env
 |-- .gitignore
-|-- app
-    |-- auth.js
-    |-- embedder.js
-    |-- server.js
-    |-- validate.js
+|-- DockerFile
 |-- package-lock.json
 |-- package.json
-|-- railway.toml
+|-- src
+    |-- auth.js
+    |-- config.js
+    |-- embedder.js
+    |-- server.js

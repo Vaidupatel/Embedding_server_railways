@@ -1,28 +1,35 @@
-import { pipeline } from "@huggingface/transformers";
+import { pipeline } from '@huggingface/transformers';
+import { CONFIG } from './config.js';
 
 let extractorPromise = null;
 
-async function loadModel() {
+/**
+ * Singleton model loader
+ */
+async function getExtractor() {
     if (!extractorPromise) {
         extractorPromise = pipeline(
-            "feature-extraction",
-            "Xenova/bge-small-en-v1.5"
+            'feature-extraction',
+            CONFIG.MODEL_ID
         );
     }
     return extractorPromise;
 }
 
+/**
+ * Embed texts ONE BY ONE, return ALL
+ */
 export async function embedTexts(texts, normalize = true) {
-    const extractor = await loadModel();
+    const extractor = await getExtractor();
     const embeddings = [];
 
-    // ONE BY ONE embedding (your requirement)
     for (const text of texts) {
         const output = await extractor(text, {
-            pooling: "mean",
+            pooling: 'mean',
             normalize
         });
 
+        // output is a Tensor
         embeddings.push(output.tolist()[0]);
     }
 
